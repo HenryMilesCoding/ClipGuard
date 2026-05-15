@@ -1,9 +1,4 @@
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
-using System.Windows.Forms;
 using System.ComponentModel;
-
-using System.Windows.Forms;
 
 namespace ClipGuard;
 
