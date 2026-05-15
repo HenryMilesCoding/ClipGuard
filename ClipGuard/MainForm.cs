@@ -35,7 +35,7 @@ public partial class MainForm : Form
 
         _trayMenu = new ContextMenuStrip();
 
-        _monitoringItem = new ToolStripMenuItem("Monitoring aktiv")
+        _monitoringItem = new ToolStripMenuItem("Monitoring active")
         {
             Checked = _settings.EnableMonitoring,
             CheckOnClick = true
@@ -52,7 +52,7 @@ public partial class MainForm : Form
                 _clipboardGuardService.Stop();
         };
 
-        _autoClearItem = new ToolStripMenuItem("Auto-Clear aktiv")
+        _autoClearItem = new ToolStripMenuItem("Auto-Clear enabled")
         {
             Checked = _settings.EnableAutoClear,
             CheckOnClick = true
@@ -64,7 +64,7 @@ public partial class MainForm : Form
             _clipboardGuardService.ApplySettings();
         };
 
-        _notificationsItem = new ToolStripMenuItem("Benachrichtigungen")
+        _notificationsItem = new ToolStripMenuItem("Notifications")
         {
             Checked = _settings.EnableNotifications,
             CheckOnClick = true
@@ -75,7 +75,7 @@ public partial class MainForm : Form
             SettingsStore.Save(_settings);
         };
 
-        var settingsItem = new ToolStripMenuItem("Regex-Einstellungen");
+        var settingsItem = new ToolStripMenuItem("Regex settings");
         settingsItem.Click += (_, _) =>
         {
             using var form = new SettingsForm(_settings);
@@ -83,18 +83,18 @@ public partial class MainForm : Form
             {
                 SettingsStore.Save(_settings);
                 _clipboardGuardService.ApplySettings();
-                ShowBalloon("ClipGuard", "Einstellungen gespeichert.", ToolTipIcon.Info);
+                ShowBalloon("ClipGuard", "Settings saved.", ToolTipIcon.Info);
             }
         };
 
-        var clearItem = new ToolStripMenuItem("Zwischenablage leeren");
+        var clearItem = new ToolStripMenuItem("Clear the clipboard");
         clearItem.Click += (_, _) =>
         {
             _clipboardGuardService.ClearClipboardManually();
-            ShowBalloon("ClipGuard", "Zwischenablage geleert.", ToolTipIcon.Info);
+            ShowBalloon("ClipGuard", "Clipboard cleared.", ToolTipIcon.Info);
         };
 
-        var exitItem = new ToolStripMenuItem("Beenden");
+        var exitItem = new ToolStripMenuItem("Exit");
         exitItem.Click += (_, _) => Close();
 
         _trayMenu.Items.Add(_monitoringItem);
@@ -181,7 +181,7 @@ public partial class MainForm : Form
         {
             _settings = settings;
 
-            Text = "ClipGuard Regex-Einstellungen";
+            Text = "ClipGuard Regex Settings";
             StartPosition = FormStartPosition.CenterParent;
             Width = 820;
             Height = 620;
@@ -191,7 +191,7 @@ public partial class MainForm : Form
 
             var monitoringLabel = new Label
             {
-                Text = "Allgemein",
+                Text = "General",
                 Left = 16,
                 Top = 16,
                 Width = 200,
@@ -200,7 +200,7 @@ public partial class MainForm : Form
 
             _monitoringBox = new CheckBox
             {
-                Text = "Monitoring aktiv",
+                Text = "Monitoring active",
                 Left = 20,
                 Top = 48,
                 Width = 200,
@@ -209,7 +209,7 @@ public partial class MainForm : Form
 
             _autoClearBox = new CheckBox
             {
-                Text = "Auto-Clear aktiv",
+                Text = "Auto-Clear enabled",
                 Left = 20,
                 Top = 78,
                 Width = 200,
@@ -218,7 +218,7 @@ public partial class MainForm : Form
 
             _notificationsBox = new CheckBox
             {
-                Text = "Benachrichtigungen anzeigen",
+                Text = "View notifications",
                 Left = 20,
                 Top = 108,
                 Width = 240,
@@ -227,7 +227,7 @@ public partial class MainForm : Form
 
             var secondsLabel = new Label
             {
-                Text = "Auto-Clear Sekunden",
+                Text = "Auto-Clear Seconds",
                 Left = 20,
                 Top = 145,
                 Width = 180
@@ -289,7 +289,7 @@ public partial class MainForm : Form
 
             var saveButton = new Button
             {
-                Text = "Speichern",
+                Text = "Save",
                 Left = 580,
                 Top = 520,
                 Width = 130,
@@ -298,7 +298,7 @@ public partial class MainForm : Form
 
             var cancelButton = new Button
             {
-                Text = "Abbrechen",
+                Text = "Cancel",
                 Left = 440,
                 Top = 520,
                 Width = 130,

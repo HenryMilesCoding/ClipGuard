@@ -58,7 +58,6 @@ public sealed class PatternMatcher
             }
             catch (ArgumentException)
             {
-                // Fallback: interpret invalid regex as literal text.
                 var literal = Regex.Escape(pattern);
 
                 try
@@ -70,7 +69,6 @@ public sealed class PatternMatcher
                 }
                 catch
                 {
-                    // ignore completely broken patterns
                 }
             }
         }

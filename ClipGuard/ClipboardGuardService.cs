@@ -34,7 +34,7 @@ public sealed class ClipboardGuardService : IDisposable
         _autoClearTimer.Tick += (_, _) =>
         {
             if (_settings.EnableAutoClear)
-                ClearClipboardSafe("Die Zwischenablage wurde automatisch geleert.");
+                ClearClipboardSafe("The clipboard has been automatically cleared.");
         };
 
         ApplySettings();
@@ -90,7 +90,7 @@ public sealed class ClipboardGuardService : IDisposable
 
     public void ClearClipboardManually()
     {
-        ClearClipboardSafe("Die Zwischenablage wurde geleert.");
+        ClearClipboardSafe("The clipboard has been cleared.");
     }
 
     private void HandleClipboardUpdate()
@@ -109,7 +109,7 @@ public sealed class ClipboardGuardService : IDisposable
 
             if (_patternMatcher.IsWhitelisted(text))
             {
-                StatusRequested?.Invoke(this, "Whitelisted-Inhalt erkannt, kein Eingriff.");
+                StatusRequested?.Invoke(this, "Whitelisted content detected; no action taken.");
                 return;
             }
 
@@ -118,8 +118,8 @@ public sealed class ClipboardGuardService : IDisposable
                 _suppressClipboardEvent = true;
                 Clipboard.Clear();
 
-                StatusRequested?.Invoke(this, "Sensibler Inhalt erkannt und entfernt.");
-                Notify("ClipGuard", "Sensibler Inhalt wurde aus der Zwischenablage entfernt.", ToolTipIcon.Warning);
+                StatusRequested?.Invoke(this, "Sensitive content detected and removed.");
+                Notify("ClipGuard", "Sensitive content has been removed from the clipboard.", ToolTipIcon.Warning);
             }
         }
         catch
