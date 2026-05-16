@@ -24,12 +24,6 @@ Designed as a small, fast, open-source utility built with .NET 8 and WinForms.
 
 ---
 
-# Screenshots
-
-_Add screenshots here later._
-
----
-
 # Supported Platforms
 
 - Windows 10
@@ -108,6 +102,12 @@ dotnet run
 
 ```bash
 dotnet publish -c Release -r win-x64 --self-contained true
+```
+
+Or even more concisely:
+```bash
+dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true /p:EnableCompressionInSingleFile=true
+
 ```
 
 Published files can be found inside:
