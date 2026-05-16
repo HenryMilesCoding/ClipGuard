@@ -1,3 +1,5 @@
+using System.Windows.Forms;
+
 namespace ClipGuard;
 
 internal static class Program
@@ -6,6 +8,9 @@ internal static class Program
     private static void Main()
     {
         ApplicationConfiguration.Initialize();
-        Application.Run(new MainForm());
+
+        using var context = new ClipGuardApplicationContext();
+
+        Application.Run(context);
     }
 }

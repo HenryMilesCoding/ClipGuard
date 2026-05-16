@@ -1,8 +1,9 @@
 ﻿using System.Runtime.InteropServices;
+using System.Windows.Forms;
 
 namespace ClipGuard;
 
-public sealed class ClipboardGuardService : IDisposable
+public sealed class ClipboardGuardService : NativeWindow, IDisposable
 {
     private const int WM_CLIPBOARDUPDATE = 0x031D;
 
@@ -13,172 +14,186 @@ public sealed class ClipboardGuardService : IDisposable
     private static extern bool RemoveClipboardFormatListener(IntPtr hwnd);
 
     private readonly AppSettings _settings;
-    private readonly PatternMatcher _patternMatcher;
-    private readonly System.Windows.Forms.Timer _autoClearTimer;
+    private readonly PatternMatcher _matcher;
 
-    private bool _isListening;
-    private bool _suppressClipboardEvent;
-    private IntPtr _windowHandle = IntPtr.Zero;
+    private readonly System.Windows.Forms.Timer _timer;
+
+    private bool _disposed;
 
     public event EventHandler<NotificationEventArgs>? NotificationRequested;
-
-    public event EventHandler<string>? StatusRequested;
 
     public ClipboardGuardService(AppSettings settings)
     {
         _settings = settings;
-        _patternMatcher = new PatternMatcher(settings);
 
-        _autoClearTimer = new System.Windows.Forms.Timer();
-        _autoClearTimer.Tick += (_, _) =>
+        _matcher = new PatternMatcher(settings);
+
+        CreateHandle(new CreateParams());
+
+        _timer = new System.Windows.Forms.Timer();
+
+        _timer.Tick += (_, _) =>
         {
             if (_settings.EnableAutoClear)
-                ClearClipboardSafe("The clipboard has been automatically cleared.");
+            {
+                ClearClipboard();
+            }
         };
 
         ApplySettings();
     }
 
-    public void Attach(IntPtr windowHandle)
-    {
-        _windowHandle = windowHandle;
-    }
-
     public void Start()
     {
-        if (_windowHandle == IntPtr.Zero)
+        if (_disposed)
             return;
 
-        if (!_isListening)
-        {
-            AddClipboardFormatListener(_windowHandle);
-            _isListening = true;
-        }
+        AddClipboardFormatListener(Handle);
 
         ApplySettings();
     }
 
-    public void Stop()
-    {
-        if (_isListening && _windowHandle != IntPtr.Zero)
-        {
-            RemoveClipboardFormatListener(_windowHandle);
-            _isListening = false;
-        }
-
-        _autoClearTimer.Stop();
-    }
-
     public void ApplySettings()
     {
-        _patternMatcher.Reload(_settings);
+        if (_disposed)
+            return;
 
-        _autoClearTimer.Interval = Math.Max(1, _settings.AutoClearSeconds) * 1000;
+        _matcher.Reload(_settings);
 
-        if (_settings.EnableMonitoring && _settings.EnableAutoClear)
-            _autoClearTimer.Start();
+        _timer.Interval =
+            Math.Max(1, _settings.AutoClearSeconds) * 1000;
+
+        if (_settings.EnableMonitoring &&
+            _settings.EnableAutoClear)
+        {
+            _timer.Start();
+        }
         else
-            _autoClearTimer.Stop();
+        {
+            _timer.Stop();
+        }
     }
 
-    public void ProcessWindowMessage(ref Message m)
+    public void ClearClipboard()
     {
-        if (m.Msg == WM_CLIPBOARDUPDATE)
-            HandleClipboardUpdate();
-    }
-
-    public void ClearClipboardManually()
-    {
-        ClearClipboardSafe("The clipboard has been cleared.");
-    }
-
-    private void HandleClipboardUpdate()
-    {
-        if (_suppressClipboardEvent || !_settings.EnableMonitoring)
+        if (_disposed)
             return;
 
         try
         {
+            Clipboard.Clear();
+
+            Notify(
+                "ClipGuard",
+                "Clipboard cleared.",
+                ToolTipIcon.Info);
+        }
+        catch
+        {
+        }
+    }
+
+    protected override void WndProc(ref Message m)
+    {
+        if (_disposed)
+            return;
+
+        if (m.Msg == WM_CLIPBOARDUPDATE)
+        {
+            HandleClipboard();
+        }
+
+        base.WndProc(ref m);
+    }
+
+    private void HandleClipboard()
+    {
+        try
+        {
+            if (!_settings.EnableMonitoring)
+                return;
+
             if (!Clipboard.ContainsText())
                 return;
 
-            var text = Clipboard.GetText(TextDataFormat.UnicodeText);
+            var text =
+                Clipboard.GetText(TextDataFormat.UnicodeText);
+
             if (string.IsNullOrWhiteSpace(text))
                 return;
 
-            if (_patternMatcher.IsWhitelisted(text))
-            {
-                StatusRequested?.Invoke(this, "Whitelisted content detected; no action taken.");
+            if (_matcher.IsWhitelisted(text))
                 return;
-            }
 
-            if (_patternMatcher.IsSensitive(text))
+            if (_matcher.IsSensitive(text))
             {
-                _suppressClipboardEvent = true;
                 Clipboard.Clear();
 
-                StatusRequested?.Invoke(this, "Sensitive content detected and removed.");
-                Notify("ClipGuard", "Sensitive content has been removed from the clipboard.", ToolTipIcon.Warning);
+                Notify(
+                    "ClipGuard",
+                    "Sensitive clipboard content removed.",
+                    ToolTipIcon.Warning);
             }
         }
         catch
         {
-            // Clipboard kann kurzfristig gesperrt sein.
-        }
-        finally
-        {
-            _suppressClipboardEvent = false;
         }
     }
 
-    private void ClearClipboardSafe(string? statusMessage = null)
+    private void Notify(
+        string title,
+        string message,
+        ToolTipIcon icon)
     {
-        try
-        {
-            _suppressClipboardEvent = true;
-            Clipboard.Clear();
+        if (_disposed)
+            return;
 
-            if (!string.IsNullOrWhiteSpace(statusMessage))
-            {
-                StatusRequested?.Invoke(this, statusMessage);
-                Notify("ClipGuard", statusMessage, ToolTipIcon.Info);
-            }
-        }
-        catch
-        {
-            // bewusst still
-        }
-        finally
-        {
-            _suppressClipboardEvent = false;
-        }
-    }
-
-    private void Notify(string title, string message, ToolTipIcon icon)
-    {
         if (!_settings.EnableNotifications)
             return;
 
-        NotificationRequested?.Invoke(this, new NotificationEventArgs(title, message, icon));
+        NotificationRequested?.Invoke(
+            this,
+            new NotificationEventArgs(
+                title,
+                message,
+                icon));
     }
 
     public void Dispose()
     {
-        Stop();
-        _autoClearTimer.Dispose();
+        if (_disposed)
+            return;
+
+        _disposed = true;
+
+        try
+        {
+            RemoveClipboardFormatListener(Handle);
+        }
+        catch
+        {
+        }
+
+        _timer.Stop();
+        _timer.Dispose();
+
+        DestroyHandle();
     }
 }
 
 public sealed class NotificationEventArgs : EventArgs
 {
-    public NotificationEventArgs(string title, string message, ToolTipIcon icon)
+    public string Title { get; }
+    public string Message { get; }
+    public ToolTipIcon Icon { get; }
+
+    public NotificationEventArgs(
+        string title,
+        string message,
+        ToolTipIcon icon)
     {
         Title = title;
         Message = message;
         Icon = icon;
     }
-
-    public string Title { get; }
-    public string Message { get; }
-    public ToolTipIcon Icon { get; }
 }

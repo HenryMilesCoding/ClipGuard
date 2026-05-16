@@ -4,10 +4,8 @@ namespace ClipGuard;
 
 public sealed class PatternMatcher
 {
-    private readonly object _sync = new();
-
-    private List<Regex> _sensitiveRegexes = new();
-    private List<Regex> _whitelistRegexes = new();
+    private List<Regex> _sensitive = new();
+    private List<Regex> _whitelist = new();
 
     public PatternMatcher(AppSettings settings)
     {
@@ -16,60 +14,36 @@ public sealed class PatternMatcher
 
     public void Reload(AppSettings settings)
     {
-        lock (_sync)
-        {
-            _sensitiveRegexes = BuildRegexList(settings.SensitivePatterns);
-            _whitelistRegexes = BuildRegexList(settings.WhitelistPatterns);
-        }
-    }
-
-    public bool IsWhitelisted(string text)
-    {
-        lock (_sync)
-        {
-            return _whitelistRegexes.Any(r => r.IsMatch(text));
-        }
+        _sensitive = Build(settings.SensitivePatterns);
+        _whitelist = Build(settings.WhitelistPatterns);
     }
 
     public bool IsSensitive(string text)
     {
-        lock (_sync)
-        {
-            return _sensitiveRegexes.Any(r => r.IsMatch(text));
-        }
+        return _sensitive.Any(x => x.IsMatch(text));
     }
 
-    private static List<Regex> BuildRegexList(IEnumerable<string> patterns)
+    public bool IsWhitelisted(string text)
+    {
+        return _whitelist.Any(x => x.IsMatch(text));
+    }
+
+    private static List<Regex> Build(IEnumerable<string> patterns)
     {
         var list = new List<Regex>();
 
-        foreach (var rawPattern in patterns)
+        foreach (var pattern in patterns)
         {
-            var pattern = rawPattern?.Trim();
-            if (string.IsNullOrWhiteSpace(pattern))
-                continue;
-
             try
             {
-                list.Add(new Regex(pattern,
+                list.Add(new Regex(
+                    pattern,
                     RegexOptions.IgnoreCase |
-                    RegexOptions.CultureInvariant |
-                    RegexOptions.Compiled));
+                    RegexOptions.Compiled |
+                    RegexOptions.CultureInvariant));
             }
-            catch (ArgumentException)
+            catch
             {
-                var literal = Regex.Escape(pattern);
-
-                try
-                {
-                    list.Add(new Regex(literal,
-                        RegexOptions.IgnoreCase |
-                        RegexOptions.CultureInvariant |
-                        RegexOptions.Compiled));
-                }
-                catch
-                {
-                }
             }
         }
 
